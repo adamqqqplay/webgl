@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<link rel="stylesheet" type="text/css" href="button.css" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<script id="vertex-shader" type="x-shader/x-vertex">
+
+attribute  vec4 vPosition;
+attribute  vec3 vNormal;
+varying vec4 fColor;
+attribute  vec4 vColor;
+
+attribute  vec2 vTexCoord;
+
+varying vec2 fTexCoord;
+
+uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+uniform vec4 lightPosition;
+uniform float shininess;
+
+uniform vec3 theta;
+uniform vec3 zoom;
+uniform vec3 trans;
+
+void main()
+{
+    
+  vec3 angles = radians( theta );
+  vec3 c = cos( angles );
+  vec3 s = sin( angles );
+  
+  mat4 zm = mat4( zoom.x, 0.0, 0.0, 0.0,
+				0.0,  zoom.y, 0.0, 0.0,
+				0.0,  0.0, zoom.z, 0.0,
+				0.0,  0.0, 0.0, 1.0 );
+			
+  mat4 tm = mat4(
+			1.0, 0.0, 0.0, 0.0,
+			0.0, 1.0, 0.0, 0.0,
+			0.0, 0.0, 1.0, 0.0,
+            trans.x, trans.y, trans.z, 1.0);
+            
+  mat4 rx = mat4( 1.0,  0.0,  0.0, 0.0,
+		    0.0,  c.x,  s.x, 0.0,
+		    0.0, -s.x,  c.x, 0.0,
+		    0.0,  0.0,  0.0, 1.0 );				//x����ת
+
+  mat4 ry = mat4( c.y, 0.0, -s.y, 0.0,
+		    0.0, 1.0,  0.0, 0.0,
+		    s.y, 0.0,  c.y, 0.0,
+		    0.0, 0.0,  0.0, 1.0 );			//y����ת
+
+
+  mat4 rz = mat4( c.z, s.z, 0.0, 0.0,
+		    -s.z,  c.z, 0.0, 0.0,
+		    0.0,  0.0, 1.0, 0.0,
+		    0.0,  0.0, 0.0, 1.0 );			//z����ת
+
+  gl_Position = tm*zm*vPosition;
+  
+  //gl_Position.z = -gl_Position.z;
+
+  
+  
+  
+  	vec3 pos = -(modelViewMatrix * vPosition).xyz;
+    
+    //fixed light postion
+    
+    vec3 light = lightPosition.xyz;
+    vec3 L = normalize( light - pos );
+
+	
+    vec3 E = normalize( -pos );
+    vec3 H = normalize( L + E );
+    
+    vec4 NN = vec4(vNormal,0);
+
+    // Transform vertex normal into eye coordinates
+       
+    vec3 N = normalize( (modelViewMatrix*NN).xyz);
+
+    // Compute terms in the illumination equation
+    vec4 ambient = ambientProduct;
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+    
+    if( dot(L, N) < 0.0 ) {
+	specular = vec4(0.0, 0.0, 0.0, 1.0);
+    } 
+
+  
+    fColor = vColor;
+    fColor.a = 1.0;
+
+
+    fTexCoord = vTexCoord;
+
+
+    gl_Position = projectionMatrix * modelViewMatrix * gl_Position;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+
+    precision mediump float;
+    
+    varying vec4 fColor;
+    varying  vec2 fTexCoord;
+    
+    uniform sampler2D Tex0;
+    uniform sampler2D Tex1;
+    
+    void
+    main()
+    {
+        gl_FragColor = fColor*texture2D( Tex0, fTexCoord );
+    }
+</script>
+
+<script type="text/javascript" src="Common/webgl-utils.js"></script>
+<script type="text/javascript" src="Common/initShaders.js"></script>
+<script type="text/javascript" src="Common/MV.js"></script>
+<script type="text/javascript" src="Common/math_circle.js"></script>
+<script type="text/javascript" src="cube.js"></script>
+
+<body>
+
+<canvas id="gl-canvas" width="512"" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+
+<br/>
+<p>全局</p>
+
+<button class="button white medium" id= "RotateAllX">X旋转</button>
+<button class="button white medium" id= "RotateAllY">Y旋转</button>
+<button class="button white medium" id= "RotateAllZ">Z旋转</button>
+<button class="button white medium" id= "ZoomInAll">放大</button>
+<button class="button white medium" id= "ZoomOutAll">缩小</button>
+<button class="button white medium" id= "PauaeAll">暂停/播放</button>
+<button class="button white medium" id= "MoveDownAll">向下移动</button>
+<button class="button white medium" id= "MoveUpAll">向上移动</button>
+
+<p>第一个字母</p>
+<button class="button orange medium" id= "RotateFirstX">X旋转</button>
+<button class="button orange medium" id= "RotateFirstY">Y旋转</button>
+<button class="button orange medium" id= "RotateFirstZ">Z旋转</button>
+<button class="button orange medium" id= "ZoomInFirst">放大</button>
+<button class="button orange medium" id= "ZoomOutFirst">缩小</button>
+<button class="button orange medium" id= "PauaeFirst">暂停/播放</button>
+<button class="button orange medium" id= "MoveDownFirst">向下移动</button>
+<button class="button orange medium" id= "MoveUpFirst">向上移动</button>
+
+<p>第二个字母</p>
+<button class="button blue medium" id= "RotateSecondX">X旋转</button>
+<button class="button blue medium" id= "RotateSecondY">Y旋转</button>
+<button class="button blue medium" id= "RotateSecondZ">Z旋转</button>
+<button class="button blue medium" id= "ZoomInSecond">放大</button>
+<button class="button blue medium" id= "ZoomOutSecond">缩小</button>
+<button class="button blue medium" id= "PauaeSecond">暂停/播放</button>
+<button class="button blue medium" id= "MoveDownSecond">向下移动</button>
+<button class="button blue medium" id= "MoveUpSecond">向上移动</button>
+
+<p>第三个字母</p>
+<button class="button pink medium" id= "RotateThirdX">X旋转</button>
+<button class="button pink medium" id= "RotateThirdY">Y旋转</button>
+<button class="button pink medium" id= "RotateThirdZ">Z旋转</button>
+<button class="button pink medium" id= "ZoomInThird">放大</button>
+<button class="button pink medium" id= "ZoomOutThird">缩小</button>
+<button class="button pink medium" id= "PauaeThird">暂停/播放</button>
+<button class="button pink medium"id= "MoveDownThird">向下移动</button>
+<button class="button pink medium" id= "MoveUpThird">向上移动</button>
+
+</body>
+</html>
